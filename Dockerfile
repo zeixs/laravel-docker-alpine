@@ -1,5 +1,7 @@
 FROM alpine:latest
 
+ENV TZ="Asia/Jakarta"
+
 WORKDIR /var/www/html/
 
 # Essentials
