@@ -1,12 +1,12 @@
 FROM alpine:latest
 
-ENV TZ="Asia/Jakarta"
-
 WORKDIR /var/www/html/
 
 # Essentials
-RUN echo "UTC" > /etc/timezone
-RUN apk add --no-cache zip unzip curl sqlite nginx supervisor
+RUN apk add --no-cache tzdata
+ENV TZ=Asia/Jakarta
+
+RUN apk add --no-cache zip unzip curl nginx supervisor
 
 # Installing bash
 RUN apk add bash
@@ -19,6 +19,7 @@ RUN apk add --no-cache php82 \
     php82-pdo \
     php82-opcache \
     php82-zip \
+    php82-gd \
     php82-phar \
     php82-iconv \
     php82-cli \
@@ -29,11 +30,11 @@ RUN apk add --no-cache php82 \
     php82-fileinfo \
     php82-json \
     php82-xml \
+    php82-xmlreader \
     php82-xmlwriter \
     php82-simplexml \
     php82-dom \
     php82-pdo_mysql \
-    php82-pdo_sqlite \
     php82-tokenizer \
     php82-pecl-redis
 
@@ -43,6 +44,8 @@ RUN ln -s /usr/bin/php82 /usr/bin/php
 RUN curl -sS https://getcomposer.org/installer -o composer-setup.php
 RUN php composer-setup.php --install-dir=/usr/local/bin --filename=composer
 RUN rm -rf composer-setup.php
+
+RUN apk add nodejs yarn
 
 # Configure supervisor
 RUN mkdir -p /etc/supervisor.d/
@@ -69,6 +72,16 @@ RUN ln -sf /dev/stderr /var/log/nginx/error.log
 COPY . .
 RUN composer install --no-dev
 RUN chown -R nobody:nobody /var/www/html/storage
+RUN yarn && yarn add npx && yarn production && yarn tailwind-production
+
+# Run a cron job
+ADD ./docker/cron/crontab.txt /crontab.txt
+RUN /usr/bin/crontab /crontab.txt
+
+# add log for supervisor laravel worker
+RUN touch /var/www/html/storage/logs/worker.log
+
+RUN php artisan key:generate --ansi
 
 EXPOSE 80
-CMD ["supervisord", "-c", "/etc/supervisor.d/supervisord.ini"]
+CMD ["/usr/bin/supervisord"]
