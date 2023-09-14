@@ -81,7 +81,11 @@ RUN /usr/bin/crontab /crontab.txt
 # add log for supervisor laravel worker
 RUN touch /var/www/html/storage/logs/worker.log
 
+# Generate Laravel app encryption key
 RUN php artisan key:generate --ansi
 
+# Exposing port 80 (http)
 EXPOSE 80
+
+# Auto start supervisor on start
 CMD ["/usr/bin/supervisord"]
